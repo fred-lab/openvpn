@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+  ca_server:
+    build:
+      context: ./ca_server
+      args:
+        - OPENVPN_VERSION=$OPENVPN_VERSION
+        - SERVER_NAME=$SERVER_NAME
+        - EASYRSA_VERSION=$EASYRSA_VERSION
+        - EASYRSA_REQ_COUNTRY=$EASYRSA_REQ_COUNTRY
+        - EASYRSA_REQ_PROVINCE=$EASYRSA_REQ_PROVINCE
+        - EASYRSA_REQ_CITY=$EASYRSA_REQ_CITY
+        - EASYRSA_REQ_ORG=$EASYRSA_REQ_ORG
+        - EASYRSA_REQ_EMAIL=$EASYRSA_REQ_EMAIL
+        - EASYRSA_REQ_OU=$EASYRSA_REQ_OU
+        - EASYRSA_CERT_EXPIRE=$EASYRSA_CERT_EXPIRE
+        - EASYRSA_CRL_DAYS=$EASYRSA_CRL_DAYS
+    container_name: ca_server
+    # cap_add à supprimer ??
+    # cap_add:
+    #   - NET_ADMIN
+    # restart: always
+    volumes:
+      - server_certificates:/etc/openvpn/$SERVER_NAME
+      - ./client_certificates:/etc/openvpn/clients:ro
+    depends_on:
+      - vpn_server
+
+  vpn_server:
+    build:
+      context: ./vpn_server
+      args:
+        - OPENVPN_VERSION=$OPENVPN_VERSION
+        - KEY_BITS=$KEY_BITS
+        - SERVER_NAME=$SERVER_NAME
+        - EASYRSA_VERSION=$EASYRSA_VERSION
+        - SERVER_PORT=$SERVER_PORT
+        - SERVER_PROTOCOL=$SERVER_PROTOCOL
+        - PRIMARY_DNS_IP=$PRIMARY_DNS_IP
+        - SERVER_IP=$SERVER_IP
+        - SERVER_USERNAME=$SERVER_USERNAME
+        - SERVER_USERGROUP=$SERVER_USERGROUP
+    container_name: vpn_server
+    # restart: always
+    volumes:
+      - server_certificates:/etc/openvpn/cert
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    ports:
+      - $SERVER_PORT:$SERVER_PORT
+
+volumes:
+  server_certificates: {}
